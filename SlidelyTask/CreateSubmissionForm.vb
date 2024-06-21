@@ -1,100 +1,124 @@
 ﻿Imports System.Diagnostics
 
 Public Class CreateSubmissionForm
-    ' Declare controls as WithEvents
-    Private WithEvents btnStopwatch As Button
+    Private WithEvents btnToggleStopwatch As Button
     Private WithEvents btnSubmit As Button
-    Private WithEvents Timer1 As Timer
-    Private WithEvents lblStopwatch As Label
-    Private WithEvents txtName As TextBox
-    Private WithEvents txtEmail As TextBox
-    Private WithEvents txtPhone As TextBox
-    Private WithEvents txtGitHub As TextBox
-
+    Private lblName, lblEmail, lblPhone, lblGithub, lblStopwatch As Label
+    Private WithEvents txtName, txtEmail, txtPhone, txtGithub As TextBox
+    Private txtStopwatch As TextBox
     Private stopwatch As New Stopwatch()
-    Private isRunning As Boolean = False
 
-    Private Sub btnStopwatch_Click(sender As Object, e As EventArgs) Handles btnStopwatch.Click
-        If isRunning Then
+    Private Sub CreateSubmissionForm_Load(sender As Object, e As EventArgs) Handles MyBase.Load
+        Me.Text = "John Doe, Slidely Task 2 - Create Submission"
+        Me.KeyPreview = True
+
+        ' Initialize controls
+        InitializeControls()
+    End Sub
+
+    Private Sub InitializeControls()
+        ' Labels
+        lblName = CreateLabel("Name", 10, 10)
+        lblEmail = CreateLabel("Email", 10, 40)
+        lblPhone = CreateLabel("Phone Num", 10, 70)
+        lblGithub = CreateLabel("Github Link For Task 2", 10, 100)
+        lblStopwatch = CreateLabel("Stopwatch time", 10, 130)
+
+        ' TextBoxes
+        txtName = CreateTextBox(150, 10)
+        txtEmail = CreateTextBox(150, 40)
+        txtPhone = CreateTextBox(150, 70)
+        txtGithub = CreateTextBox(150, 100)
+        txtStopwatch = CreateTextBox(150, 130)
+        txtStopwatch.ReadOnly = True
+
+        ' Buttons
+        btnToggleStopwatch = New Button()
+        With btnToggleStopwatch
+            .Text = "TOGGLE STOPWATCH (CTRL + T)"
+            .Location = New Point(10, 170)
+            .Size = New Size(200, 30)
+            .BackColor = Color.Yellow
+        End With
+        Me.Controls.Add(btnToggleStopwatch)
+
+        btnSubmit = New Button()
+        With btnSubmit
+            .Text = "SUBMIT (CTRL + S)"
+            .Location = New Point(10, 210)
+            .Size = New Size(340, 30)
+            .BackColor = Color.LightBlue
+        End With
+        Me.Controls.Add(btnSubmit)
+    End Sub
+
+    Private Function CreateLabel(text As String, x As Integer, y As Integer) As Label
+        Dim lbl As New Label()
+        With lbl
+            .Text = text
+            .Location = New Point(x, y)
+            .AutoSize = True
+        End With
+        Me.Controls.Add(lbl)
+        Return lbl
+    End Function
+
+    Private Function CreateTextBox(x As Integer, y As Integer) As TextBox
+        Dim txt As New TextBox()
+        With txt
+            .Location = New Point(x, y)
+            .Size = New Size(200, 20)
+        End With
+        Me.Controls.Add(txt)
+        Return txt
+    End Function
+
+    Private Sub btnToggleStopwatch_Click(sender As Object, e As EventArgs) Handles btnToggleStopwatch.Click
+        ToggleStopwatch()
+    End Sub
+
+    Private Sub ToggleStopwatch()
+        If stopwatch.IsRunning Then
             stopwatch.Stop()
-            isRunning = False
+            btnToggleStopwatch.Text = "Resume Stopwatch (CTRL + T)"
         Else
             stopwatch.Start()
-            isRunning = True
-            Timer1.Start()
+            btnToggleStopwatch.Text = "Pause Stopwatch (CTRL + T)"
         End If
     End Sub
 
-    Private Sub Timer1_Tick(sender As Object, e As EventArgs) Handles Timer1.Tick
-        lblStopwatch.Text = stopwatch.Elapsed.ToString("hh\:mm\:ss")
+    Private Sub UpdateStopwatch(sender As Object, e As EventArgs) Handles MyBase.Paint
+        If stopwatch.IsRunning Then
+            txtStopwatch.Text = stopwatch.Elapsed.ToString("hh\:mm\:ss")
+        End If
+        Me.Invalidate()
     End Sub
 
     Private Sub btnSubmit_Click(sender As Object, e As EventArgs) Handles btnSubmit.Click
-        Dim submission As New Submission With {
-            .Name = txtName.Text,
-            .Email = txtEmail.Text,
-            .Phone = txtPhone.Text,
-            .GitHubLink = txtGitHub.Text,
-            .StopwatchTime = lblStopwatch.Text
-        }
-        ' Save submission to backend (implement saving logic here)
-        MessageBox.Show("Submission Saved!")
+        ' Implement submission logic here
+        MessageBox.Show("Form submitted successfully!")
+        ' Reset form after submission
+        ResetForm()
+    End Sub
+
+    Private Sub ResetForm()
+        txtName.Clear()
+        txtEmail.Clear()
+        txtPhone.Clear()
+        txtGithub.Clear()
+        stopwatch.Reset()
+        txtStopwatch.Clear()
+        btnToggleStopwatch.Text = "TOGGLE STOPWATCH (CTRL + T)"
     End Sub
 
     Private Sub CreateSubmissionForm_KeyDown(sender As Object, e As KeyEventArgs) Handles MyBase.KeyDown
-        If e.Control AndAlso e.KeyCode = Keys.S Then
-            btnSubmit.PerformClick()
-        ElseIf e.Control AndAlso e.KeyCode = Keys.T Then
-            btnStopwatch.PerformClick()
-        End If
-    End Sub
-
-    Private Sub CreateSubmissionForm_Load(sender As Object, e As EventArgs) Handles MyBase.Load
-        Me.KeyPreview = True
-        Timer1.Interval = 1000 ' 1 second intervals
-
-        ' Initialize controls if they're not created in the designer
-        If btnStopwatch Is Nothing Then
-            btnStopwatch = New Button()
-            btnStopwatch.Text = "Stopwatch"
-            Me.Controls.Add(btnStopwatch)
-        End If
-
-        If btnSubmit Is Nothing Then
-            btnSubmit = New Button()
-            btnSubmit.Text = "Submit"
-            Me.Controls.Add(btnSubmit)
-        End If
-
-        If Timer1 Is Nothing Then
-            Timer1 = New Timer()
-            Timer1.Interval = 1000
-        End If
-
-        If lblStopwatch Is Nothing Then
-            lblStopwatch = New Label()
-            lblStopwatch.Text = "00:00:00"
-            Me.Controls.Add(lblStopwatch)
-        End If
-
-        If txtName Is Nothing Then
-            txtName = New TextBox()
-            Me.Controls.Add(txtName)
-        End If
-
-        If txtEmail Is Nothing Then
-            txtEmail = New TextBox()
-            Me.Controls.Add(txtEmail)
-        End If
-
-        If txtPhone Is Nothing Then
-            txtPhone = New TextBox()
-            Me.Controls.Add(txtPhone)
-        End If
-
-        If txtGitHub Is Nothing Then
-            txtGitHub = New TextBox()
-            Me.Controls.Add(txtGitHub)
+        If e.Control Then
+            Select Case e.KeyCode
+                Case Keys.T
+                    ToggleStopwatch()
+                Case Keys.S
+                    btnSubmit.PerformClick()
+            End Select
         End If
     End Sub
 End Class
