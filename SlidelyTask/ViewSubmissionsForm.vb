@@ -5,6 +5,7 @@ Imports Newtonsoft.Json
 Public Class ViewSubmissionsForm
     Private currentIndex As Integer = 0
     Private btnPrevious As Button
+    Private WithEvents btnDelete As Button
     Private btnNext As Button
     Private lblName, lblEmail, lblPhone, lblGithub, lblStopwatch As Label
     Private txtName, txtEmail, txtPhone, txtGithub, txtStopwatch As TextBox
@@ -23,6 +24,7 @@ Public Class ViewSubmissionsForm
                 Dim response As HttpResponseMessage = Await client.GetAsync($"http://localhost:3000/read?index={currentIndex}")
                 If response.IsSuccessStatusCode Then
                     Dim submissionJson As String = Await response.Content.ReadAsStringAsync()
+                    Console.WriteLine($"Received JSON: {submissionJson}")  ' Debug log
                     Dim submission As Submission = JsonConvert.DeserializeObject(Of Submission)(submissionJson)
 
                     UpdateFormFields(submission)
@@ -49,15 +51,26 @@ Public Class ViewSubmissionsForm
     Private Sub UpdateButtonStates()
         btnPrevious.Enabled = currentIndex > 0
         btnNext.Enabled = True
+        btnDelete.Enabled = Not String.IsNullOrEmpty(txtName.Text)
     End Sub
 
     Private Sub HandleNotFoundResponse()
         If currentIndex > 0 Then
             currentIndex -= 1
-            btnNext.Enabled = False
+            DisplaySubmission()
         Else
             MessageBox.Show("No submissions found.", "Information", MessageBoxButtons.OK, MessageBoxIcon.Information)
+            ClearFormFields()
         End If
+        UpdateButtonStates()
+    End Sub
+
+    Private Sub ClearFormFields()
+        txtName.Clear()
+        txtEmail.Clear()
+        txtPhone.Clear()
+        txtGithub.Clear()
+        txtStopwatch.Clear()
     End Sub
 
     Private Sub ShowErrorMessage(message As String)
@@ -94,7 +107,36 @@ Public Class ViewSubmissionsForm
         ' Buttons
         btnPrevious = CreateButton("PREVIOUS (CTRL + P)", 10, 170, Color.Yellow, AddressOf btnPrevious_Click)
         btnNext = CreateButton("NEXT (CTRL + N)", 170, 170, Color.LightBlue, AddressOf btnNext_Click)
+        btnDelete = CreateButton("DELETE (CTRL + D)", 330, 170, Color.Red, AddressOf btnDelete_Click)
     End Sub
+
+    Private Async Sub btnDelete_Click(sender As Object, e As EventArgs)
+        If MessageBox.Show("Are you sure you want to delete this submission?", "Confirm Delete", MessageBoxButtons.YesNo, MessageBoxIcon.Warning) = DialogResult.Yes Then
+            Await DeleteSubmission()
+        End If
+    End Sub
+
+    Private Async Function DeleteSubmission() As Task
+        Using client As New HttpClient()
+            Try
+                Dim response As HttpResponseMessage = Await client.DeleteAsync($"http://localhost:3000/delete/{currentIndex}")
+                If response.IsSuccessStatusCode Then
+                    MessageBox.Show("Submission deleted successfully.", "Success", MessageBoxButtons.OK, MessageBoxIcon.Information)
+                    ' Move to the previous submission or reset if it was the first one
+                    If currentIndex > 0 Then
+                        currentIndex -= 1
+                    Else
+                        currentIndex = 0
+                    End If
+                    Await DisplaySubmission()
+                Else
+                    ShowErrorMessage($"Error deleting submission: {response.StatusCode}")
+                End If
+            Catch ex As Exception
+                ShowErrorMessage($"An error occurred: {ex.Message}")
+            End Try
+        End Using
+    End Function
 
     Private Function CreateLabel(text As String, x As Integer, y As Integer) As Label
         Dim lbl As New Label() With {
@@ -135,6 +177,8 @@ Public Class ViewSubmissionsForm
                     btnPrevious.PerformClick()
                 Case Keys.N
                     btnNext.PerformClick()
+                Case Keys.D
+                    btnDelete.PerformClick()
             End Select
         End If
     End Sub
