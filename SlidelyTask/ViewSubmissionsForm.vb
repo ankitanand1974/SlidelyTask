@@ -39,9 +39,9 @@ Public Class ViewSubmissionsForm
     End Function
 
     Private Sub UpdateFormFields(submission As Submission)
-        txtName.Text = submission.Name
-        txtEmail.Text = submission.Email
-        txtPhone.Text = submission.Phone
+        txtName.Text = submission.name
+        txtEmail.Text = submission.email
+        txtPhone.Text = submission.phone
         txtGithub.Text = submission.github_link
         txtStopwatch.Text = submission.stopwatch_time
     End Sub
@@ -141,9 +141,9 @@ Public Class ViewSubmissionsForm
 End Class
 
 Public Class Submission
-    Public Property Name As String
-    Public Property Email As String
-    Public Property Phone As String
+    Public Property name As String
+    Public Property email As String
+    Public Property phone As String
     Public Property github_link As String
     Public Property stopwatch_time As String
 End Class
