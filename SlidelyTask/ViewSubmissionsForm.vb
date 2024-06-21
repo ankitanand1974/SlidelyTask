@@ -42,8 +42,8 @@ Public Class ViewSubmissionsForm
         txtName.Text = submission.Name
         txtEmail.Text = submission.Email
         txtPhone.Text = submission.Phone
-        txtGithub.Text = submission.GitHubLink
-        txtStopwatch.Text = submission.StopwatchTime
+        txtGithub.Text = submission.github_link
+        txtStopwatch.Text = submission.stopwatch_time
     End Sub
 
     Private Sub UpdateButtonStates()
@@ -144,6 +144,6 @@ Public Class Submission
     Public Property Name As String
     Public Property Email As String
     Public Property Phone As String
-    Public Property GitHubLink As String
-    Public Property StopwatchTime As String
+    Public Property github_link As String
+    Public Property stopwatch_time As String
 End Class
