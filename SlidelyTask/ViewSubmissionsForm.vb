@@ -1,23 +1,79 @@
-﻿Public Class ViewSubmissionsForm
-    Private WithEvents btnPrevious As Button
-    Private WithEvents btnNext As Button
+﻿Imports System.Net
+Imports System.Net.Http
+Imports Newtonsoft.Json
+
+Public Class ViewSubmissionsForm
+    Private currentIndex As Integer = 0
+    Private btnPrevious As Button
+    Private btnNext As Button
     Private lblName, lblEmail, lblPhone, lblGithub, lblStopwatch As Label
     Private txtName, txtEmail, txtPhone, txtGithub, txtStopwatch As TextBox
-    Private currentIndex As Integer = 0
-    Private submissions As List(Of Submission) = New List(Of Submission)
 
-    Private Sub ViewSubmissionsForm_Load(sender As Object, e As EventArgs) Handles MyBase.Load
+    Private Async Sub ViewSubmissionsForm_Load(sender As Object, e As EventArgs) Handles MyBase.Load
         Me.Text = "John Doe, Slidely Task 2 - View Submissions"
         Me.KeyPreview = True
 
-        ' Initialize controls
         InitializeControls()
+        Await DisplaySubmission()
+    End Sub
 
-        ' Load submissions (replace this with actual data loading)
-        LoadDummyData()
+    Private Async Function DisplaySubmission() As Task
+        Using client As New HttpClient()
+            Try
+                Dim response As HttpResponseMessage = Await client.GetAsync($"http://localhost:3000/read?index={currentIndex}")
+                If response.IsSuccessStatusCode Then
+                    Dim submissionJson As String = Await response.Content.ReadAsStringAsync()
+                    Dim submission As Submission = JsonConvert.DeserializeObject(Of Submission)(submissionJson)
 
-        ' Display first submission
-        DisplaySubmission()
+                    UpdateFormFields(submission)
+                    UpdateButtonStates()
+                ElseIf response.StatusCode = HttpStatusCode.NotFound Then
+                    HandleNotFoundResponse()
+                Else
+                    ShowErrorMessage($"Error retrieving submission: {response.StatusCode}")
+                End If
+            Catch ex As Exception
+                ShowErrorMessage($"An error occurred: {ex.Message}")
+            End Try
+        End Using
+    End Function
+
+    Private Sub UpdateFormFields(submission As Submission)
+        txtName.Text = submission.Name
+        txtEmail.Text = submission.Email
+        txtPhone.Text = submission.Phone
+        txtGithub.Text = submission.GitHubLink
+        txtStopwatch.Text = submission.StopwatchTime
+    End Sub
+
+    Private Sub UpdateButtonStates()
+        btnPrevious.Enabled = currentIndex > 0
+        btnNext.Enabled = True
+    End Sub
+
+    Private Sub HandleNotFoundResponse()
+        If currentIndex > 0 Then
+            currentIndex -= 1
+            btnNext.Enabled = False
+        Else
+            MessageBox.Show("No submissions found.", "Information", MessageBoxButtons.OK, MessageBoxIcon.Information)
+        End If
+    End Sub
+
+    Private Sub ShowErrorMessage(message As String)
+        MessageBox.Show(message, "Error", MessageBoxButtons.OK, MessageBoxIcon.Error)
+    End Sub
+
+    Private Async Sub btnPrevious_Click(sender As Object, e As EventArgs)
+        If currentIndex > 0 Then
+            currentIndex -= 1
+            Await DisplaySubmission()
+        End If
+    End Sub
+
+    Private Async Sub btnNext_Click(sender As Object, e As EventArgs)
+        currentIndex += 1
+        Await DisplaySubmission()
     End Sub
 
     Private Sub InitializeControls()
@@ -36,77 +92,41 @@
         txtStopwatch = CreateTextBox(120, 130)
 
         ' Buttons
-        btnPrevious = New Button()
-        With btnPrevious
-            .Text = "PREVIOUS (CTRL + P)"
-            .Location = New Point(10, 170)
-            .Size = New Size(150, 30)
-            .BackColor = Color.Yellow
-        End With
-        Me.Controls.Add(btnPrevious)
-
-        btnNext = New Button()
-        With btnNext
-            .Text = "NEXT (CTRL + N)"
-            .Location = New Point(170, 170)
-            .Size = New Size(150, 30)
-            .BackColor = Color.LightBlue
-        End With
-        Me.Controls.Add(btnNext)
+        btnPrevious = CreateButton("PREVIOUS (CTRL + P)", 10, 170, Color.Yellow, AddressOf btnPrevious_Click)
+        btnNext = CreateButton("NEXT (CTRL + N)", 170, 170, Color.LightBlue, AddressOf btnNext_Click)
     End Sub
 
     Private Function CreateLabel(text As String, x As Integer, y As Integer) As Label
-        Dim lbl As New Label()
-        With lbl
-            .Text = text
-            .Location = New Point(x, y)
+        Dim lbl As New Label() With {
+            .Text = text,
+            .Location = New Point(x, y),
             .AutoSize = True
-        End With
+        }
         Me.Controls.Add(lbl)
         Return lbl
     End Function
 
     Private Function CreateTextBox(x As Integer, y As Integer) As TextBox
-        Dim txt As New TextBox()
-        With txt
-            .Location = New Point(x, y)
-            .Size = New Size(200, 20)
+        Dim txt As New TextBox() With {
+            .Location = New Point(x, y),
+            .Size = New Size(200, 20),
             .ReadOnly = True
-        End With
+        }
         Me.Controls.Add(txt)
         Return txt
     End Function
 
-    Private Sub LoadDummyData()
-        ' Replace this with actual data loading logic
-        submissions.Add(New Submission("John Doe", "johndoe@gmail.com", "9876543210", "https://github.com/john_doe/my_slidely_task/", "00:01:19"))
-        submissions.Add(New Submission("Jane Smith", "janesmith@gmail.com", "1234567890", "https://github.com/jane_smith/slidely_project/", "00:02:45"))
-    End Sub
-
-    Private Sub DisplaySubmission()
-        If submissions.Count > 0 Then
-            Dim submission As Submission = submissions(currentIndex)
-            txtName.Text = submission.Name
-            txtEmail.Text = submission.Email
-            txtPhone.Text = submission.Phone
-            txtGithub.Text = submission.GitHubLink
-            txtStopwatch.Text = submission.StopwatchTime
-        End If
-    End Sub
-
-    Private Sub btnPrevious_Click(sender As Object, e As EventArgs) Handles btnPrevious.Click
-        If currentIndex > 0 Then
-            currentIndex -= 1
-            DisplaySubmission()
-        End If
-    End Sub
-
-    Private Sub btnNext_Click(sender As Object, e As EventArgs) Handles btnNext.Click
-        If currentIndex < submissions.Count - 1 Then
-            currentIndex += 1
-            DisplaySubmission()
-        End If
-    End Sub
+    Private Function CreateButton(text As String, x As Integer, y As Integer, backColor As Color, clickHandler As EventHandler) As Button
+        Dim btn As New Button() With {
+            .Text = text,
+            .Location = New Point(x, y),
+            .Size = New Size(150, 30),
+            .BackColor = backColor
+        }
+        AddHandler btn.Click, clickHandler
+        Me.Controls.Add(btn)
+        Return btn
+    End Function
 
     Private Sub ViewSubmissionsForm_KeyDown(sender As Object, e As KeyEventArgs) Handles MyBase.KeyDown
         If e.Control Then
@@ -126,12 +146,4 @@ Public Class Submission
     Public Property Phone As String
     Public Property GitHubLink As String
     Public Property StopwatchTime As String
-
-    Public Sub New(name As String, email As String, phone As String, gitHubLink As String, stopwatchTime As String)
-        Me.Name = name
-        Me.Email = email
-        Me.Phone = phone
-        Me.GitHubLink = gitHubLink
-        Me.StopwatchTime = stopwatchTime
-    End Sub
 End Class

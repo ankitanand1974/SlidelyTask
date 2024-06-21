@@ -1,4 +1,7 @@
 ﻿Imports System.Diagnostics
+Imports System.Net.Http
+Imports System.Text
+Imports Newtonsoft.Json
 
 Public Class CreateSubmissionForm
     Private WithEvents btnToggleStopwatch As Button
@@ -94,12 +97,52 @@ Public Class CreateSubmissionForm
         Me.Invalidate()
     End Sub
 
-    Private Sub btnSubmit_Click(sender As Object, e As EventArgs) Handles btnSubmit.Click
-        ' Implement submission logic here
-        MessageBox.Show("Form submitted successfully!")
-        ' Reset form after submission
-        ResetForm()
+    Private Async Sub btnSubmit_Click(sender As Object, e As EventArgs) Handles btnSubmit.Click
+        If ValidateForm() Then
+            Await SubmitForm()
+        End If
     End Sub
+
+    Private Function ValidateForm() As Boolean
+        ' Add your validation logic here
+        ' For example:
+        If String.IsNullOrWhiteSpace(txtName.Text) OrElse
+           String.IsNullOrWhiteSpace(txtEmail.Text) OrElse
+           String.IsNullOrWhiteSpace(txtPhone.Text) OrElse
+           String.IsNullOrWhiteSpace(txtGithub.Text) Then
+            MessageBox.Show("All fields are required.", "Validation Error", MessageBoxButtons.OK, MessageBoxIcon.Error)
+            Return False
+        End If
+        Return True
+    End Function
+
+    Private Async Function SubmitForm() As Task
+        Using client As New HttpClient()
+            Dim submitData = New With {
+            .name = txtName.Text,
+            .email = txtEmail.Text,
+            .phone = txtPhone.Text,
+            .github_link = txtGithub.Text,
+            .stopwatch_time = txtStopwatch.Text
+        }
+
+            Dim json As String = JsonConvert.SerializeObject(submitData)
+            Dim content As New StringContent(json, Encoding.UTF8, "application/json")
+
+            Try
+                Dim response As HttpResponseMessage = Await client.PostAsync("http://localhost:3000/submit", content)
+                If response.IsSuccessStatusCode Then
+                    MessageBox.Show("Form submitted successfully!", "Success", MessageBoxButtons.OK, MessageBoxIcon.Information)
+                    ResetForm()
+                Else
+                    MessageBox.Show($"Error submitting form: {response.StatusCode}", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error)
+                End If
+            Catch ex As Exception
+                MessageBox.Show($"An error occurred: {ex.Message}", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error)
+            End Try
+        End Using
+    End Function
+
 
     Private Sub ResetForm()
         txtName.Clear()
